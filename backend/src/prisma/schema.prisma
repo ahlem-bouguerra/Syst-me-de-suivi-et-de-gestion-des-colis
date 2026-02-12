@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ParcelStatus {
+  CREATED
+  OUTBOUND_SCANNED
+  IN_TRANSIT
+  DELIVERED
+  RETURN_IN_TRANSIT
+  RETURN_RECEIVED
+  PENDING_TOO_LONG
+  LOST
+  FAILED_DELIVERY 
+}
+
+enum EventSource {
+  SCAN
+  FILE
+  MANUAL
+  SYSTEM
+  BULK_IMPORT   // ✅ ajoute
+}
+
+model Carrier {
+  id             Int    @id @default(autoincrement())
+  name           String @unique
+  ruleType       String // PREFIX or REGEX
+  ruleValue      String // ex: "AB" or "^(AB|AC)\\d+$"
+  slaPendingDays Int    @default(10)
+  slaLostDays    Int    @default(20)
+
+  parcels       Parcel[]
+  importBatches ImportBatch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Parcel {
+  id             Int          @id @default(autoincrement())
+  trackingNumber String       @unique
+  status         ParcelStatus @default(CREATED)
+
+  carrierId Int?
+  carrier   Carrier? @relation(fields: [carrierId], references: [id])
+
+  destination       String?
+  outboundScannedAt DateTime?
+  deliveredAt       DateTime?
+  returnReceivedAt  DateTime?
+
+  events  ParcelEvent[]
+  returns ReturnIntake[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lostAt DateTime?
+  @@index([status, outboundScannedAt])   
+}
+
+model ParcelEvent {
+  id       Int    @id @default(autoincrement())
+  parcelId Int
+  parcel   Parcel @relation(fields: [parcelId], references: [id])
+
+  eventType  String // SCAN_OUT, IMPORT_STATUS, SCAN_RETURN, MARK_LOST...
+  fromStatus ParcelStatus?
+  toStatus   ParcelStatus?
+  source     EventSource
+  payload    Json?
+  userId     String?
+
+  createdAt DateTime @default(now())
+}
+
+model ImportBatch {
+  id        Int     @id @default(autoincrement())
+  carrierId Int
+  carrier   Carrier @relation(fields: [carrierId], references: [id])
+
+  filename  String
+  status    String // PROCESSING/DONE/FAILED
+  stats     Json?
+  createdBy String?
+  createdAt DateTime @default(now())
+}
+
+model ReturnIntake {
+  id       Int    @id @default(autoincrement())
+  parcelId Int
+  parcel   Parcel @relation(fields: [parcelId], references: [id])
+
+  receivedBy String?
+  location   String?
+  note       String?
+
+  createdAt DateTime @default(now())
+}

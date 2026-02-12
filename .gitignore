@@ -1,0 +1,54 @@
+################################
+# Global
+################################
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+
+################################
+# Node / JS
+################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+################################
+# Backend (Node + Prisma)
+################################
+backend/node_modules/
+backend/dist/
+backend/build/
+
+# Prisma
+backend/src/prisma/migrations/
+
+################################
+# Frontend (Next.js)
+################################
+front-end/node_modules/
+front-end/.next/
+front-end/out/
+front-end/build/
+
+################################
+# Logs
+################################
+logs/
+*.log
+
+################################
+# IDE / Editor
+################################
+.vscode/
+.idea/
+*.swp
+
+################################
+# Docker
+################################
+docker-data/
