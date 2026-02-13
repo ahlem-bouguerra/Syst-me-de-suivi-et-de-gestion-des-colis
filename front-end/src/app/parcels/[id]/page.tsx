@@ -186,6 +186,15 @@ export default function ParcelDetailsPage() {
 
           <div>
             <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
+              accountDetected
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
+              {parcel.carrierAccount?.accountName ?? "-"}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
               Destination
             </div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>

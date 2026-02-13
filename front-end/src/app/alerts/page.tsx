@@ -21,6 +21,10 @@ export default function AlertsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
+  
+  // 📄 États de pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   async function loadData() {
     setLoading(true);
@@ -39,6 +43,11 @@ export default function AlertsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Réinitialiser la page quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, statusFilter]);
 
   // 📊 Calcul des statistiques complètes
   const statusStats = calculateStatusStats(parcels);
@@ -93,6 +102,53 @@ export default function AlertsPage() {
 
     return true;
   });
+
+  // 📄 Calculs de pagination
+  const totalItems = filteredParcels.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedParcels = filteredParcels.slice(startIndex, endIndex);
+
+  // Fonction pour changer de page
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Générer les numéros de page à afficher
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 7;
+
+    if (totalPages <= maxVisible) {
+      // Afficher toutes les pages
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Afficher avec ellipses
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   return (
     <div>
@@ -159,7 +215,6 @@ export default function AlertsPage() {
 
         {/* 🔍 Filtres */}
         <div style={{ marginBottom: 24 }}>
-
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>
               📋 Catégorie de statut
@@ -181,6 +236,45 @@ export default function AlertsPage() {
           </div>
         )}
 
+        {/* 📄 Info pagination et sélecteur */}
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          marginBottom: 16,
+          padding: "12px 16px",
+          background: "#f9fafb",
+          borderRadius: 8,
+          border: "1px solid #e5e7eb"
+        }}>
+          <div style={{ fontSize: 14, color: "#6b7280" }}>
+            Affichage de <strong>{startIndex + 1}</strong> à <strong>{Math.min(endIndex, totalItems)}</strong> sur <strong>{totalItems}</strong> colis
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <label style={{ fontSize: 14, color: "#6b7280" }}>Éléments par page :</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: "white",
+                fontSize: 14,
+                cursor: "pointer"
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+
         {/* 📋 Tableau */}
         <div style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -196,7 +290,7 @@ export default function AlertsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredParcels.map((p) => {
+              {paginatedParcels.map((p) => {
                 const daysSince = calculateDaysSince(p.outboundScannedAt);
                 const slaPending = p.carrier?.slaPendingDays ?? 10;
                 const slaLost = p.carrier?.slaLostDays ?? 20;
@@ -244,7 +338,7 @@ export default function AlertsPage() {
                 );
               })}
 
-              {!loading && filteredParcels.length === 0 && (
+              {!loading && paginatedParcels.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ padding: 20, textAlign: "center", color: "#666" }}>
                     {filter === "all" && statusFilter === "all" 
@@ -256,6 +350,136 @@ export default function AlertsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* 📄 Contrôles de pagination */}
+        {totalPages > 1 && (
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "center", 
+            alignItems: "center", 
+            gap: 8, 
+            marginTop: 24,
+            paddingBottom: 24
+          }}>
+            {/* Bouton Première page */}
+            <button
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: currentPage === 1 ? "#f9fafb" : "white",
+                color: currentPage === 1 ? "#9ca3af" : "#374151",
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+              title="Première page"
+            >
+              «
+            </button>
+
+            {/* Bouton Précédent */}
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: currentPage === 1 ? "#f9fafb" : "white",
+                color: currentPage === 1 ? "#9ca3af" : "#374151",
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+              title="Page précédente"
+            >
+              ‹
+            </button>
+
+            {/* Numéros de page */}
+            {getPageNumbers().map((page, index) => {
+              if (page === "...") {
+                return (
+                  <span 
+                    key={`ellipsis-${index}`} 
+                    style={{ 
+                      padding: "8px 12px",
+                      color: "#9ca3af",
+                      fontSize: 14
+                    }}
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              const pageNum = page as number;
+              const isActive = pageNum === currentPage;
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => goToPage(pageNum)}
+                  style={{
+                    padding: "8px 12px",
+                    minWidth: 40,
+                    borderRadius: 6,
+                    border: isActive ? "2px solid #667eea" : "1px solid #d1d5db",
+                    background: isActive ? "#667eea" : "white",
+                    color: isActive ? "white" : "#374151",
+                    cursor: "pointer",
+                    fontWeight: isActive ? 700 : 600,
+                    fontSize: 14,
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            {/* Bouton Suivant */}
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: currentPage === totalPages ? "#f9fafb" : "white",
+                color: currentPage === totalPages ? "#9ca3af" : "#374151",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+              title="Page suivante"
+            >
+              ›
+            </button>
+
+            {/* Bouton Dernière page */}
+            <button
+              onClick={() => goToPage(totalPages)}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: currentPage === totalPages ? "#f9fafb" : "white",
+                color: currentPage === totalPages ? "#9ca3af" : "#374151",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+              title="Dernière page"
+            >
+              »
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

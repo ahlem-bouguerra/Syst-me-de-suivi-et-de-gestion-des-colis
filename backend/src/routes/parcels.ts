@@ -194,6 +194,7 @@ parcelsRoutes.get("/:trackingNumber", async (req, res) => {
     where: { trackingNumber },
     include: {
       carrier: true,
+      carrierAccount: true,
       events: { orderBy: { createdAt: "desc" } },
       returns: { orderBy: { createdAt: "desc" } },
     },

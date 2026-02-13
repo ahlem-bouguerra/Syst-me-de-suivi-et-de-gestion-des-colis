@@ -47,10 +47,8 @@ carriersRoutes.get("/:id", async (req, res) => {
 // POST /api/carriers - إضافة شركة جديدة
 const carrierSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  ruleType: z.enum(["PREFIX", "REGEX"], {
-    errorMap: () => ({ message: "Rule type must be PREFIX or REGEX" })
-  }),
-  ruleValue: z.string().min(1, "Rule value is required"),
+  ruleType: z.literal("LENGTH"),
+  ruleValue: z.string().regex(/^\d+$/, "Rule value must be digits only (ex: 9 or 14)"),
   slaPendingDays: z.number().min(1).max(365).default(10),
   slaLostDays: z.number().min(1).max(365).default(20)
 });
